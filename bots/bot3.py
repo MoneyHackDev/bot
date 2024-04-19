@@ -20,8 +20,8 @@ class Zefoy:
         self.headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
         }
-        self.session1 = requests.Session()  # Custom session variable name
-        self.session1.proxies.update(self.proxy)  # Update session with proxy
+        self.session3 = requests.Session()  # Custom session variable name
+        self.session3.proxies.update(self.proxy)  # Update session with proxy
         self.captcha_1 = None
         self.captcha_ = {}
         self.service = 'Views'
@@ -67,8 +67,8 @@ class Zefoy:
 
     def get_captcha(self):
         if os.path.exists('session'):
-            self.session1.cookies.set("PHPSESSID", open('session', encoding='utf-8').read(), domain='zefoy.com')
-        request = self.session1.get(self.base_url, headers=self.headers)
+            self.session3.cookies.set("PHPSESSID", open('session', encoding='utf-8').read(), domain='zefoy.com')
+        request = self.session3.get(self.base_url, headers=self.headers)
         if 'Enter Video URL' in request.text:
             self.video_key = request.text.split('" placeholder="Enter Video URL"')[0].split('name="')[-1]
             return True
@@ -79,7 +79,7 @@ class Zefoy:
 
             self.captcha_1 = request.text.split('type="text" name="')[1].split('" oninput="this.value=this.value.toLowerCase()"')[0]
             captcha_url = request.text.split('<img src="')[1].split('" onerror="imgOnError()" class="')[0]
-            request = self.session1.get(f"{self.base_url}{captcha_url}", headers=self.headers)
+            request = self.session3.get(f"{self.base_url}{captcha_url}", headers=self.headers)
             open('captcha.png', 'wb').write(request.content)
             print('Solving captcha..')
             return False
@@ -90,7 +90,7 @@ class Zefoy:
 
     def send_captcha(self, new_session=False):
         if new_session:
-            self.session1 = requests.Session()
+            self.session3 = requests.Session()
             os.remove('session')
             time.sleep(2)
         if self.get_captcha():
@@ -98,11 +98,11 @@ class Zefoy:
             return (True, 'The session already exists')
         captcha_solve = self.solve_captcha('captcha.png')[1]
         self.captcha_[self.captcha_1] = captcha_solve
-        request = self.session1.post(self.base_url, headers=self.headers, data=self.captcha_)
+        request = self.session3.post(self.base_url, headers=self.headers, data=self.captcha_)
 
         if 'Enter Video URL' in request.text:
             print('Session was created')
-            open('session', 'w', encoding='utf-8').write(self.session1.cookies.get('PHPSESSID'))
+            open('session', 'w', encoding='utf-8').write(self.session3.cookies.get('PHPSESSID'))
             self.video_key = request.text.split('" placeholder="Enter Video URL"')[0].split('name="')[-1]
             return (True, captcha_solve)
         else:
@@ -116,14 +116,14 @@ class Zefoy:
             task = 'temp.png'
         
         # API for solving captcha
-        request = self.session1.post('https://api.ocr.space/parse/image?K87899142388957', headers={'apikey': 'K87899142388957'}, files={'task': open(task, 'rb')}).json()
+        request = self.session3.post('https://api.ocr.space/parse/image?K87899142388957', headers={'apikey': 'K87899142388957'}, files={'task': open(task, 'rb')}).json()
         solved_text = request['ParsedResults'][0]['ParsedText']
         for x in delete_tag:
             solved_text = solved_text.replace(x, '')
         return (True, solved_text)
 
     def get_status_services(self):
-        request = self.session1.get(self.base_url, headers=self.headers).text
+        request = self.session3.get(self.base_url, headers=self.headers).text
         for x in re.findall(r'<h5 class="card-title">.+</h5>\n.+\n.+', request):
             self.services[x.split('<h5 class="card-title">')[1].split('<')[0].strip()] = x.split('d-sm-inline-block">')[1].split('</small>')[0].strip()
         for x in re.findall(r'<h5 class="card-title mb-3">.+</h5>\n<form action=".+">', request):
@@ -154,7 +154,7 @@ class Zefoy:
             if self.service not in self.services_ids:
                 self.get_status_services()
                 time.sleep(1)
-            request = self.session1.post(f'{self.base_url}{self.services_ids[self.service]}', headers={'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary0nU8PjANC8BhQgjZ', 'user-agent': self.headers['user-agent'], 'origin': 'https://zefoy.com'}, data=f'------WebKitFormBoundary0nU8PjANC8BhQgjZ\r\nContent-Disposition: form-data; name="{self.video_key}"\r\n\r\n{self.url}\r\n------WebKitFormBoundary0nU8PjANC8BhQgjZ--\r\n')
+            request = self.session3.post(f'{self.base_url}{self.services_ids[self.service]}', headers={'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary0nU8PjANC8BhQgjZ', 'user-agent': self.headers['user-agent'], 'origin': 'https://zefoy.com'}, data=f'------WebKitFormBoundary0nU8PjANC8BhQgjZ\r\nContent-Disposition: form-data; name="{self.video_key}"\r\n\r\n{self.url}\r\n------WebKitFormBoundary0nU8PjANC8BhQgjZ--\r\n')
             try:
                 self.video_info = base64.b64decode(unquote(request.text.encode()[::-1])).decode()
             except:
@@ -192,7 +192,7 @@ class Zefoy:
         if self.find_video()[0] is False:
             return False
         self.token = "".join(random.choices(ascii_letters + digits, k=16))
-        request = self.session1.post(f'{self.base_url}{self.services_ids[self.service]}', headers={'content-type': f'multipart/form-data; boundary=----WebKitFormBoundary{self.token}', 'user-agent': self.headers['user-agent'], 'origin': 'https://zefoy.com'}, data=f'------WebKitFormBoundary{self.token}\r\nContent-Disposition: form-data; name="{self.video_info[0]}"\r\n\r\n{self.video_info[1]}\r\n------WebKitFormBoundary{self.token}--\r\n')
+        request = self.session3.post(f'{self.base_url}{self.services_ids[self.service]}', headers={'content-type': f'multipart/form-data; boundary=----WebKitFormBoundary{self.token}', 'user-agent': self.headers['user-agent'], 'origin': 'https://zefoy.com'}, data=f'------WebKitFormBoundary{self.token}\r\nContent-Disposition: form-data; name="{self.video_info[0]}"\r\n\r\n{self.video_info[1]}\r\n------WebKitFormBoundary{self.token}--\r\n')
         try:
             res = base64.b64decode(unquote(request.text.encode()[::-1])).decode()
         except:
@@ -210,7 +210,7 @@ class Zefoy:
             print(res.split("sans-serif;text-align:center;color:green;'>")[1].split("</")[0])
 
     def get_video_info(self):
-        request = self.session1.get(f'https://tiktok.livecounts.io/video/stats/{urlparse(self.url).path.rpartition("/")[2]}', headers={'authority': 'tiktok.livecounts.io', 'origin': 'https://livecounts.io', 'user-agent': self.headers['user-agent']}).json()
+        request = self.session3.get(f'https://tiktok.livecounts.io/video/stats/{urlparse(self.url).path.rpartition("/")[2]}', headers={'authority': 'tiktok.livecounts.io', 'origin': 'https://livecounts.io', 'user-agent': self.headers['user-agent']}).json()
         if 'viewCount' in request:
             return request
         else:
